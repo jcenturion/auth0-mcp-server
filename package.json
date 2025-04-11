@@ -24,7 +24,7 @@
     "lint:fix": "eslint . --ext .js,.ts --fix",
     "format": "prettier --write \"**/*.{js,ts,json}\"",
     "format:check": "prettier --check \"**/*.{js,ts,json}\"",
-    "generate-notice": "node utils/generate-notice.js",
+    "generate-notice": "node utils/generate-notice.js"
   },
   "keywords": [
     "auth0",
@@ -37,6 +37,7 @@
     "@modelcontextprotocol/sdk": "^1.8.0",
     "auth0": "^4.21.0",
     "chalk": "^5.4.1",
+    "commander": "^13.1.0",
     "debug": "^4.4.0",
     "jwt-decode": "^4.0.0",
     "keytar": "^7.9.0",
