@@ -4,6 +4,7 @@ import * as os from 'os';
 import chalk from 'chalk';
 import { log, logError } from '../utils/logger.js';
 import { cliOutput } from '../utils/cli-utility.js';
+import type { CliOptions } from '../utils/cli-args.js';
 
 interface ClaudeMCPServer {
   args: string[];
@@ -16,9 +17,9 @@ interface ClaudeDesktopConfig {
   mcpServers: Record<string, ClaudeMCPServer>;
 }
 
-export const findAndUpdateClaudeConfig = async () => {
+export const findAndUpdateClaudeConfig = async (options?: CliOptions) => {
   const resolvedConfigPath = await getClaudeConfigPath();
-  await updateClaudeConfig(resolvedConfigPath);
+  await updateClaudeConfig(resolvedConfigPath, options);
   cliOutput(
     `\n${chalk.green('✓')} Auth0 MCP server configured. ${chalk.yellow('Restart Claude Desktop')} to apply changes.\n`
   );
@@ -55,7 +56,7 @@ export async function getClaudeConfigPath(): Promise<string> {
   return path.join(configDir, 'claude_desktop_config.json');
 }
 
-async function updateClaudeConfig(configPath: string) {
+async function updateClaudeConfig(configPath: string, options?: CliOptions) {
   let config: ClaudeDesktopConfig = { mcpServers: {} };
   if (fs.existsSync(configPath)) {
     try {
@@ -66,9 +67,10 @@ async function updateClaudeConfig(configPath: string) {
     }
   }
 
+  const tools = options?.tools && options.tools.length > 0 ? options.tools.join(',') : '*';
   config.mcpServers['auth0'] = {
     command: 'npx',
-    args: ['-y', '@auth0/auth0-mcp-server', 'run'],
+    args: ['-y', '@auth0/auth0-mcp-server', 'run', `--tools=${tools}`],
     capabilities: ['tools'],
     env: {
       DEBUG: 'auth0-mcp',

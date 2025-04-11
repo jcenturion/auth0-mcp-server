@@ -91,7 +91,7 @@ async function updateConfig() {
 
   config.mcpServers.auth0 = {
     command: nodeLocalPath.trim(),
-    args: [SIMPLE_SERVER_PATH, 'run'],
+    args: [SIMPLE_SERVER_PATH, 'run', '--tools=*'],
     capabilities: ['tools'],
     env: {
       DEBUG: 'auth0-mcp',

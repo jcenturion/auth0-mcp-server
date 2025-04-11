@@ -7,6 +7,8 @@ import { promptForScopeSelection } from '../utils/cli-utility.js';
 import { getAllScopes } from '../utils/scopes.js';
 import { Glob } from '../utils/glob.js'; // Import the Glob class
 import chalk from 'chalk';
+import { TOOLS } from '../tools/index.js';
+import { parseArgs } from '../utils/cli-args.js';
 
 /**
  * Resolves scopes based on command line arguments
@@ -103,41 +105,6 @@ function resolveClient(args: string[]): ClientName {
 }
 
 /**
- * Client configuration mapping
- */
-interface ClientConfig {
-  message: string;
-  action: () => Promise<void>;
-}
-
-/**
- * Configures the specified client
- *
- * @param {ClientName} clientName - Name of the client to configure
- * @returns {Promise<void>}
- */
-async function configureClient(clientName: ClientName): Promise<void> {
-  const clientConfigs: Record<ClientName, ClientConfig> = {
-    windsurf: {
-      message: 'Configuring Windsurf as client...',
-      action: findAndUpdateWindsurfConfig,
-    },
-    cursor: {
-      message: 'Configuring Cursor as client...',
-      action: findAndUpdateCursorConfig,
-    },
-    claude: {
-      message: 'Configuring Claude as client default...',
-      action: findAndUpdateClaudeConfig,
-    },
-  };
-
-  const config = clientConfigs[clientName];
-  log(config.message);
-  await config.action();
-}
-
-/**
  * Initializes the Auth0 MCP server by handling scope selection, authorization,
  * and client configuration.
  *
@@ -148,15 +115,42 @@ const init = async (args: string[]): Promise<void> => {
   try {
     log('Initializing Auth0 MCP server...');
 
+    // Parse CLI options from arguments
+    const cliArgs = args.filter((arg) => !arg.startsWith('--client'));
+
+    // Check if --tools is explicitly provided
+    const hasToolsArg = cliArgs.some((arg) => arg.startsWith('--tools='));
+    if (!hasToolsArg) {
+      logError("The --tools parameter is required. Example: --tools='auth0_list_*,auth0_get_*'");
+      throw new Error('Missing required --tools parameter');
+    }
+
+    const options = parseArgs(cliArgs, TOOLS);
+    // We know tools exists because we checked for the --tools argument
+    if (options.tools && options.tools.length > 0) {
+      log(`Configuring server with selected tools: ${options.tools.join(', ')}`);
+    }
+
     // Handle scope resolution
     const selectedScopes = await resolveScopes(args);
     await requestAuthorization(selectedScopes);
 
     // Handle client configuration
     const clientName = resolveClient(args);
-    await configureClient(clientName);
+
+    // Pass options to client configuration functions
+    if (clientName === 'windsurf') {
+      log('Configuring Windsurf as client...');
+      await findAndUpdateWindsurfConfig(options);
+    } else if (clientName === 'cursor') {
+      log('Configuring Cursor as client...');
+      await findAndUpdateCursorConfig(options);
+    } else {
+      log('Configuring Claude as client...');
+      await findAndUpdateClaudeConfig(options);
+    }
   } catch (error) {
-    log('Error initializing server:', error);
+    logError('Error initializing server:', error);
   }
 };
 

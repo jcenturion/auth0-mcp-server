@@ -16,9 +16,11 @@ interface WindsurfConfig {
   mcpServers: Record<string, WindsurfMCPServer>;
 }
 
-export const findAndUpdateWindsurfConfig = async () => {
+import type { CliOptions } from '../utils/cli-args.js';
+
+export const findAndUpdateWindsurfConfig = async (options?: CliOptions) => {
   const resolvedConfigPath = await getWindsurfConfigPath();
-  await updateWindsurfConfig(resolvedConfigPath);
+  await updateWindsurfConfig(resolvedConfigPath, options);
   cliOutput(
     `\n${chalk.green('✓')} Auth0 MCP server configured. ${chalk.yellow('Restart Windsurf')} to apply changes.\n`
   );
@@ -55,7 +57,7 @@ export async function getWindsurfConfigPath(): Promise<string> {
   return path.join(configDir, 'mcp_config.json');
 }
 
-async function updateWindsurfConfig(configPath: string) {
+async function updateWindsurfConfig(configPath: string, options?: CliOptions) {
   let config: WindsurfConfig = { mcpServers: {} };
   if (fs.existsSync(configPath)) {
     try {
@@ -66,11 +68,13 @@ async function updateWindsurfConfig(configPath: string) {
     }
   }
 
+  const tools = options?.tools && options.tools.length > 0 ? options.tools.join(',') : '*';
   config.mcpServers['auth0'] = {
     command: 'npx',
-    args: ['-y', '@auth0/auth0-mcp-server', 'run'],
+    args: ['-y', '@auth0/auth0-mcp-server', 'run', `--tools=${tools}`],
     env: {
       DEBUG: 'auth0-mcp',
+      PATH: process.env.PATH || '',
     },
   };
 

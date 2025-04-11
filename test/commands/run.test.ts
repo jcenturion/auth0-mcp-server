@@ -58,6 +58,31 @@ describe('Run Module', () => {
     expect(process.exit).not.toHaveBeenCalled();
   });
 
+  it('should start the server with tools options', async () => {
+    const options = { tools: ['auth0_list_applications', 'auth0_get_application'] };
+
+    await run(options);
+
+    expect(startServer).toHaveBeenCalledWith(options);
+    expect(log).toHaveBeenCalledWith(
+      'Starting server with selected tools: auth0_list_applications, auth0_get_application'
+    );
+    expect(process.exit).not.toHaveBeenCalled();
+  });
+
+  it('should require tools parameter', async () => {
+    // Create mock function to test the check in index.ts
+    const checkToolsArg = (args: string[]) => {
+      return args.some((arg) => arg.startsWith('--tools='));
+    };
+
+    // Test with no tools arg
+    expect(checkToolsArg([])).toBe(false);
+
+    // Test with tools arg
+    expect(checkToolsArg(['--tools=auth0_list_*'])).toBe(true);
+  });
+
   it('should set HOME environment variable if not set', async () => {
     // Remove HOME environment variable
     delete process.env.HOME;

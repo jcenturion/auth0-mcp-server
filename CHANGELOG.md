@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `--tools` CLI option to filter available tools when starting the server
+- Added required `--tools` CLI option to both `init` and `run` commands to ensure explicit tool specification
+- Support for selective tool enabling using comma-separated list of tools or glob pattern(s)
+- Support for glob patterns like `auth0_*_applications` to enable groups of related tools
+
 ## [0.1.0-beta.1] - 2025-04-04
 
 ### Added

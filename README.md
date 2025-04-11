@@ -12,8 +12,6 @@
 📚 [Documentation](http://auth0.com/docs/getstarted/ai-tools/model-context-protocol-MCP) • 🚀 [Getting Started](#getting-started) • 💻 [Supported Tools](#supported-tools) • 💬 [Feedback](#feedback)
 </div>
 
-</br>
-
 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/introduction) is an open protocol introduced by Anthropic that standardizes how large language models communicate with external tools, resources or remote services.
 
 The Auth0 MCP Server integrates with LLMs and AI agents, allowing you to perform various Auth0 management operations using natural language. For instance, you could simply ask Claude to perform Auth0 management operations:
@@ -40,22 +38,34 @@ The Auth0 MCP Server integrates with LLMs and AI agents, allowing you to perform
 
 ### Install the Auth0 MCP Server
 
-Install Auth0 MCP Server and configure it to work with your preferred MCP client. 
+Install Auth0 MCP Server and configure it to work with your preferred MCP client. The `--tools` parameter is required to specify which tools should be available.
 
-**Claude Desktop**
+**Claude Desktop with all tools**
 ```bash
-npx @auth0/auth0-mcp-server init
+npx @auth0/auth0-mcp-server init --tools='*'
 ```
+
+**Claude Desktop with read-only tools**
+```bash
+npx @auth0/auth0-mcp-server init --tools=auth0_list_*,auth0_get_*
+```
+
 **Windsurf**
 
 ```bash
-npx @auth0/auth0-mcp-server init --client windsurf
+npx @auth0/auth0-mcp-server init --client windsurf --tools='*'
 ```
 
 **Cursor**
 
 ```bash
-npx @auth0/auth0-mcp-server init --client cursor
+npx @auth0/auth0-mcp-server init --client cursor --tools='*'
+```
+
+**With limited tools access**
+
+```bash
+npx @auth0/auth0-mcp-server init --client cursor --tools=auth0_list_applications,auth0_get_application
 ```
 
 **Other MCP Clients**
@@ -67,23 +77,23 @@ To use Auth0 MCP Server with any other MCP Client, you can manually add this con
   "mcpServers": {
     "auth0": {
       "command": "npx",
-      "args": ["-y", "@auth0/auth0-mcp-server", "run"],
+      "args": ["-y", "@auth0/auth0-mcp-server", "run", "--tools=<tools>"],
       "capabilities": ["tools"],
       "env": {
         "DEBUG": "auth0-mcp"
       }
     }
   }
+}
 ```
-</br>
+
+Replacing `<tools>` with the tools you want to enable. For example, `auth0_list_*` to enable all listing tools. See [Security Best Practices](#-security-best-practices-for-tool-access)
 
 ### Authenticate with Auth0
 Your browser will automatically open to initiate the OAuth 2.0 device authorization flow. Log into your Auth0 account and grant the requested permissions. 
 
 > [!NOTE]
 > Credentials are securely stored in your system's keychain. You can optionally verify storage through your keychain management tool. Checkout [Authentication](#-authentication) for more info. 
-
-</br>
 
 ### Verify your integration
 
@@ -92,8 +102,6 @@ Restart your MCP Client(Claude, Windsurf, Cursor, etc...) and ask it to help you
 <div align="left">
   <img src="assets/help-image-01.png" alt="Claude installed Help Image" width="300">
 </div>
-
-</br>
 
 ## 🛠️ Supported Tools
 
@@ -149,6 +157,38 @@ The Auth0 MCP Server provides the following tools for Claude to interact with yo
 | `auth0_update_form`    | Update an existing Auth0 form     | - `Update the colors on our login form to match our new brand guidelines` <br> - `Add a privacy policy link to our signup form` <br> - `Change the logo on our password reset form` |
 | `auth0_publish_form`   | Publish an Auth0 form             | - `Publish my updated login form` <br> - `Make the new signup form live` <br> - `Deploy the password reset form to production`                |
 
+### 🔒 Security Best Practices for Tool Access
+
+When configuring the Auth0 MCP Server, it's important to follow security best practices by limiting tool access based on your specific needs. The server provides flexible configuration options that let you control which tools AI assistants can access.
+
+You can easily restrict tool access using the `--tools` flag when starting the server:
+
+```bash
+# Enable only read-only operations
+npx @auth0/auth0-mcp-server run --tools='auth0_list_*,auth0_get_*'
+
+# Limit to just application-related tools
+npx @auth0/auth0-mcp-server run --tools='auth0_*_application*'
+
+# Restrict to only log viewing capabilities
+npx @auth0/auth0-mcp-server run --tools='auth0_list_logs,auth0_get_log'
+
+# Run the server with all tools enabled
+npx @auth0/auth0-mcp-server run --tools='*'
+```
+
+This approach offers several important benefits:
+
+1. **Enhanced Security**: By limiting available tools to only what's needed, you reduce the potential attack surface and prevent unintended modifications to your Auth0 tenant.
+
+2. **Better Performance**: Providing fewer tools to AI assistants actually improves performance. When models have access to many tools, they use more of their context window to reason about which tools to use. With a focused set of tools, you'll get faster and more relevant responses.
+
+3. **Resource-Based Access Control**: You can configure different instances of the MCP server with different tool sets based on specific needs - development environments might need full access, while production environments could be limited to read operations only.
+
+4. **Simplified Auditing**: With limited tools, it's easier to track which operations were performed through the AI assistant.
+
+For most use cases, start with the minimum set of tools needed and add more only when required. This follows the principle of least privilege - a fundamental security best practice.
+
 
 ## 🕸️ Architecture
 
@@ -166,8 +206,6 @@ The server handles authentication, request validation, and secure communication 
 
 > [!NOTE]
 > The server operates as a local process that connects to Claude Desktop, enabling secure communication without exposing your Auth0 credentials.
-
-</br>
 
 ## 🔐 Authentication
 
@@ -216,8 +254,6 @@ The server uses OAuth 2.0 device authorization flow for secure authentication wi
   <img src="assets/mcp-server-auth.png" alt="Authentication Sequence Diagram" width="800">
 </div>
 
-</br>
-
 ## 🩺 Troubleshooting
 
 Get command line help: View a list of supported commands and usage examples
@@ -232,8 +268,23 @@ npx @auth0/auth0-mcp-server init
 # Initialize with specific scopes (supports glob patterns)
 npx @auth0/auth0-mcp-server init --scopes 'read:*,create:clients'
 
+# Initialize with required tools flag
+npx @auth0/auth0-mcp-server init --tools=auth0_list_*,auth0_get_*
+
 # Run the server
 npx @auth0/auth0-mcp-server run
+
+# Run the server with specific tools enabled
+npx @auth0/auth0-mcp-server run --tools=auth0_list_applications,auth0_get_application
+
+# Run the server with all tools enabled
+npx @auth0/auth0-mcp-server run --tools=*
+
+# Run the server with glob pattern to enable all application tools
+npx @auth0/auth0-mcp-server run --tools=auth0_*_applications
+
+# Run the server with multiple patterns
+npx @auth0/auth0-mcp-server run --tools=auth0_list_*,auth0_get_*
 
 # Display current session information
 npx @auth0/auth0-mcp-server session
@@ -292,9 +343,10 @@ To use Auth0 MCP Server with any other MCP Client, you can add this configuratio
 ```
 
 > [!NOTE]  
-> you can manually update if needed or if any unexpected errors occur during the npx init command.
+> You can manually update if needed or if any unexpected errors occur during the npx init command.
 
 ### 🚨 Common Issues
+
 1. **Authentication Failures**
 
    - Ensure you have the correct permissions in your Auth0 tenant
@@ -314,8 +366,6 @@ To use Auth0 MCP Server with any other MCP Client, you can add this configuratio
 
 > [!TIP]
 > Most connection issues can be resolved by restarting both the server and Claude Desktop.
-
-</br>
 
 ## 📋 Debug logs
 
@@ -341,7 +391,6 @@ For detailed MCP Server logs, run the server in debug mode:
 ```bash
 DEBUG=auth0-mcp npx @auth0/auth0-mcp-server run
 ```
-</br>
 
 ## 👨‍💻 Development
 
@@ -370,8 +419,6 @@ npm run local-setup
 > [!NOTE]
 > This server requires [Node.js v18 or higher](https://nodejs.org/en/download).
 
-</br>
-
 ## 🔒 Security
 
 The Auth0 MCP Server prioritizes security:
@@ -390,8 +437,6 @@ The Auth0 MCP Server prioritizes security:
 > [!CAUTION]
 > Always review the permissions requested during the authentication process to ensure they align with your security requirements.
 
-</br>
-
 ## 💬 Feedback and Contributing
 
 We appreciate feedback and contributions to this project! Before you get started, please see:
@@ -406,8 +451,6 @@ To provide feedback or report a bug, please [raise an issue on our issue tracker
 ### Vulnerability Reporting
 
 Please do not report security vulnerabilities on the public GitHub issue tracker. The [Responsible Disclosure Program](https://auth0.com/whitehat) details the procedure for disclosing security issues.
-
-</br>
 
 ## 📄 License
 

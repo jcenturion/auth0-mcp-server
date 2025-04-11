@@ -15,9 +15,11 @@ interface CursorConfig {
   mcpServers: Record<string, CursorMCPServer>;
 }
 
-export const findAndUpdateCursorConfig = async () => {
+import type { CliOptions } from '../utils/cli-args.js';
+
+export const findAndUpdateCursorConfig = async (options?: CliOptions) => {
   const resolvedConfigPath = await getCursorConfigPath();
-  await updateCursorConfig(resolvedConfigPath);
+  await updateCursorConfig(resolvedConfigPath, options);
   cliOutput(
     `\n${chalk.green('✓')} Auth0 MCP server configured. ${chalk.yellow('Restart Cursor')} to apply changes.\n`
   );
@@ -54,7 +56,7 @@ export async function getCursorConfigPath(): Promise<string> {
   return path.join(configDir, 'mcp.json');
 }
 
-async function updateCursorConfig(configPath: string) {
+async function updateCursorConfig(configPath: string, options?: CliOptions) {
   let config: CursorConfig = { mcpServers: {} };
   if (fs.existsSync(configPath)) {
     try {
@@ -65,11 +67,13 @@ async function updateCursorConfig(configPath: string) {
     }
   }
 
+  const tools = options?.tools && options.tools.length > 0 ? options.tools.join(',') : '*';
   config.mcpServers['auth0'] = {
     command: 'npx',
-    args: ['-y', '@auth0/auth0-mcp-server', 'run'],
+    args: ['-y', '@auth0/auth0-mcp-server', 'run', `--tools=${tools}`],
     env: {
       DEBUG: 'auth0-mcp',
+      PATH: process.env.PATH || '',
     },
   };
 

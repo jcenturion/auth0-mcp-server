@@ -7,9 +7,10 @@ import { HANDLERS, TOOLS } from './tools/index.js';
 import { log, logInfo } from './utils/logger.js';
 import { formatDomain } from './utils/http-utility.js';
 import { maskTenantName } from './utils/cli-utility.js';
+import { filterTools, type CliOptions } from './utils/cli-args.js';
 
 // Server implementation
-export async function startServer() {
+export async function startServer(options?: CliOptions) {
   try {
     log('Initializing Auth0 MCP server...');
 
@@ -28,6 +29,9 @@ export async function startServer() {
 
     log(`Successfully loaded configuration for tenant: ${maskTenantName(config.tenantName)}`);
 
+    // Filter tools based on options if provided
+    const availableTools = filterTools(TOOLS, options);
+
     // Create server instance
     const server = new Server({ name: 'auth0', version: '1.0.0' }, { capabilities: { tools: {} } });
 
@@ -37,9 +41,9 @@ export async function startServer() {
 
       // Sanitize tools by removing _meta fields
       // See: https://github.com/modelcontextprotocol/modelcontextprotocol/issues/264
-      const filteredTools = TOOLS.map(({ _meta, ...rest }) => rest);
+      const sanitizedTools = availableTools.map(({ _meta, ...rest }) => rest);
 
-      return { tools: filteredTools };
+      return { tools: sanitizedTools };
     });
 
     // Handle tool calls
@@ -113,8 +117,10 @@ export async function startServer() {
         new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 5000)),
       ]);
 
-      const logMsg = `Server started and running successfully`;
-
+      // Log server start information
+      const enabledToolsCount = availableTools.length;
+      const totalToolsCount = TOOLS.length;
+      const logMsg = `Auth0 MCP Server running on stdio with ${enabledToolsCount}/${totalToolsCount} tools available`;
       logInfo(logMsg);
       log(logMsg);
 
