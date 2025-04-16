@@ -77,6 +77,7 @@ To use Auth0 MCP Server with any other MCP Client, you can manually add this con
       }
     }
   }
+}
 ```
 </br>
 
